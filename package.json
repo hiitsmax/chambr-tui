@@ -21,6 +21,9 @@
     "lint": "tsc --noEmit",
     "prepare": "npm run build"
   },
+  "dependencies": {
+    "@chambr/engine-core": "file:../chambr-core"
+  },
   "devDependencies": {
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
