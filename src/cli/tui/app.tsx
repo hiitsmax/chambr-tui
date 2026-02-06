@@ -375,55 +375,63 @@ export function ChambrTuiApp() {
         </Box>
       )}
 
-      {slashHelperVisible && slashSuggestions.length ? (
-        <Box flexDirection="column" borderStyle="round" borderColor="yellow" marginTop={1} paddingX={1}>
-          <Text color="yellow">Slash Helper · Tab autocomplete · Enter opens manager</Text>
-          {slashSuggestions.map((command: SlashCommandDefinition, index) => {
-            const selected = index === slashSelectionIndex;
-            return (
-              <Text key={command.name} color={selected ? "cyan" : undefined}>
-                {selected ? "›" : " "} /{command.name} - {command.description}
-              </Text>
-            );
-          })}
-        </Box>
-      ) : null}
+      <Box flexDirection="column" marginTop={1}>
+        {slashHelperVisible && slashSuggestions.length ? (
+          <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1}>
+            <Text color="yellow">Slash Helper · Tab autocomplete · Enter opens manager</Text>
+            {slashSuggestions.map((command: SlashCommandDefinition, index) => {
+              const selected = index === slashSelectionIndex;
+              return (
+                <Text key={command.name} color={selected ? "cyan" : undefined}>
+                  {selected ? "›" : " "} /{command.name} - {command.description}
+                </Text>
+              );
+            })}
+          </Box>
+        ) : null}
 
-      <Box marginTop={1}>
-        <Text color="gray">{status}</Text>
+        <Box marginTop={1}>
+          <Text color="gray">{status}</Text>
+        </Box>
+
+        <Box
+          marginTop={1}
+          borderStyle="round"
+          borderColor={commandCenter ? "magenta" : "green"}
+          paddingX={1}
+          paddingY={0}
+        >
+          {commandCenter && commandCenter.mode === "input" ? (
+            <>
+              <Text color="magenta">/{commandCenter.definition.command} </Text>
+              <TextInput
+                value={commandCenter.draft}
+                onChange={(value) => {
+                  setCommandCenter((previous) => {
+                    if (!previous) return null;
+                    return {
+                      ...previous,
+                      draft: value,
+                      error: undefined,
+                    };
+                  });
+                }}
+                onSubmit={(value) => {
+                  void executeCommandCenterAction(value);
+                }}
+                placeholder={commandInputPlaceholder}
+              />
+            </>
+          ) : commandCenter ? (
+            <Text color="gray">Select an action and press Enter. Esc closes command center.</Text>
+          ) : (
+            <>
+              <Text color="green">{running ? "…" : ">"} </Text>
+              <TextInput value={input} onChange={setInput} onSubmit={submit} placeholder={placeholder} />
+            </>
+          )}
+        </Box>
       </Box>
-
-      {commandCenter && commandCenter.mode === "input" ? (
-        <Box marginTop={1}>
-          <Text color="magenta">/{commandCenter.definition.command} </Text>
-          <TextInput
-            value={commandCenter.draft}
-            onChange={(value) => {
-              setCommandCenter((previous) => {
-                if (!previous) return null;
-                return {
-                  ...previous,
-                  draft: value,
-                  error: undefined,
-                };
-              });
-            }}
-            onSubmit={(value) => {
-              void executeCommandCenterAction(value);
-            }}
-            placeholder={commandInputPlaceholder}
-          />
-        </Box>
-      ) : commandCenter ? (
-        <Box marginTop={1}>
-          <Text color="gray">Select an action and press Enter.</Text>
-        </Box>
-      ) : (
-        <Box marginTop={1}>
-          <Text color="green">{running ? "…" : ">"} </Text>
-          <TextInput value={input} onChange={setInput} onSubmit={submit} placeholder={placeholder} />
-        </Box>
-      )}
     </Box>
   );
 }
