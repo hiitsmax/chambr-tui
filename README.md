@@ -29,7 +29,13 @@ After install/build, binaries are available as:
 chambr tui
 ```
 
-- Single-pane chat UI.
+- Full-screen single-pane chat UI.
+- Slash helper UX:
+  - Type `/` to open autocomplete.
+  - Use `↑/↓` or `Ctrl+N/Ctrl+P` to navigate suggestions.
+  - Press `Tab` to autocomplete command.
+  - Press `Enter` on a single slash command (for example `/roomies`) to open its dedicated command center.
+  - Press `Esc` to exit command center.
 - Slash commands:
   - `/help`
   - `/chamber create|list|use|reset`

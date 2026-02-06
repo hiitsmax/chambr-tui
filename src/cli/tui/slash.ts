@@ -11,13 +11,76 @@ import {
   useChamberRecord,
 } from "../../runtime/chamber-service";
 
+export type SlashCommandName =
+  | "chamber"
+  | "roomies"
+  | "model"
+  | "auth"
+  | "thoughts"
+  | "run"
+  | "help";
+
+export type SlashCommandDefinition = {
+  name: SlashCommandName;
+  description: string;
+  example: string;
+  opensManager: boolean;
+};
+
 type SlashResult = {
   lines: string[];
   runPrompt?: string;
   showThoughts?: boolean;
 };
 
-const tokenize = (input: string) => {
+const SLASH_COMMANDS: SlashCommandDefinition[] = [
+  {
+    name: "chamber",
+    description: "Create/list/use/reset chambers",
+    example: "/chamber list",
+    opensManager: true,
+  },
+  {
+    name: "roomies",
+    description: "Manage roomies and their models",
+    example: "/roomies list-models",
+    opensManager: true,
+  },
+  {
+    name: "model",
+    description: "Set advanced director model",
+    example: "/model --director openrouter/openai/gpt-4.1-mini",
+    opensManager: true,
+  },
+  {
+    name: "auth",
+    description: "Manage OpenRouter key",
+    example: "/auth status",
+    opensManager: true,
+  },
+  {
+    name: "thoughts",
+    description: "Show or hide thought events",
+    example: "/thoughts hide",
+    opensManager: true,
+  },
+  {
+    name: "run",
+    description: "Run a prompt in one command",
+    example: "/run summarize the room",
+    opensManager: true,
+  },
+  {
+    name: "help",
+    description: "Show command reference",
+    example: "/help",
+    opensManager: false,
+  },
+];
+
+export const listSlashCommands = () => SLASH_COMMANDS;
+
+export const tokenizeSlashInput = (input: string) => {
   const tokens: string[] = [];
   let current = "";
   let quote: '"' | "'" | null = null;
@@ -60,8 +123,44 @@ const getFlag = (tokens: string[], flag: string) => {
   return tokens[index + 1];
 };
 
+export const getSlashSuggestions = (composerValue: string): SlashCommandDefinition[] => {
+  const normalized = composerValue.startsWith("/") ? composerValue.slice(1) : composerValue;
+  const trimmedStart = normalized.trimStart();
+  const commandChunk = tokenizeSlashInput(trimmedStart)[0] || "";
+  const query = commandChunk.toLowerCase();
+
+  if (!query) {
+    return SLASH_COMMANDS;
+  }
+
+  const startsWith = SLASH_COMMANDS.filter((command) => command.name.startsWith(query));
+  const contains = SLASH_COMMANDS.filter(
+    (command) => command.name.includes(query) && !command.name.startsWith(query)
+  );
+
+  return [...startsWith, ...contains];
+};
+
+export const completeSlashComposer = (composerValue: string, commandName: SlashCommandName): string => {
+  const normalized = composerValue.startsWith("/") ? composerValue.slice(1) : composerValue;
+  const tokens = tokenizeSlashInput(normalized.trim());
+
+  if (tokens.length <= 1) {
+    return `/${commandName} `;
+  }
+
+  return composerValue;
+};
+
+export const isSingleSlashCommandInput = (composerValue: string): boolean => {
+  if (!composerValue.trim().startsWith("/")) return false;
+  const normalized = composerValue.trim().slice(1).trim();
+  if (!normalized) return true;
+  return tokenizeSlashInput(normalized).length <= 1;
+};
+
 export async function executeSlashCommand(line: string): Promise<SlashResult> {
-  const tokens = tokenize(line.trim());
+  const tokens = tokenizeSlashInput(line.trim());
   const [command, ...rest] = tokens;
 
   if (!command) {
@@ -186,7 +285,8 @@ export async function executeSlashCommand(line: string): Promise<SlashResult> {
       if (!models.length) return { lines: ["No roomies in active chamber."] };
       return {
         lines: models.map(
-          (entry) => `${entry.roomieId} | ${entry.roomieName} | ${entry.model}${entry.inherited ? " (inherited)" : ""}`
+          (entry) =>
+            `${entry.roomieId} | ${entry.roomieName} | ${entry.model}${entry.inherited ? " (inherited)" : ""}`
         ),
       };
     }
