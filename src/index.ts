@@ -1,98 +1,53 @@
-import {
-  parseNdjsonTheatricalEvents,
-  type TheatricalEvent,
-  type TheatricalEventType,
-} from "@chambr/engine-core";
+export type {
+  ChamberStateV1,
+  ChambrConfigV1,
+  FixtureFileV1,
+  FixtureMode,
+  HeadlessRunInput,
+  RoomieProfileV1,
+  RunResultV1,
+} from "./types/contracts";
 
-export type ThoughtVisibilityMode = "show" | "hide";
+export {
+  ensureStorage,
+  loadConfig,
+  saveConfig,
+  updateConfig,
+  resolveOpenRouterApiKey,
+  loadChamber,
+  saveChamber,
+  listChambers,
+  setCurrentChamber,
+  getCurrentChamberId,
+  resolveActiveChamberId,
+  createChamber,
+  resetChamberState,
+} from "./runtime/store";
 
-export type TuiRuntimeOptions = {
-  mode?: "interactive" | "headless";
-  presetId?: string;
-  directorModel?: string;
-  thoughtVisibility?: ThoughtVisibilityMode;
-};
+export {
+  createChamberRecord,
+  listChamberRecords,
+  useChamberRecord,
+  getActiveChamber,
+  resetChamberRecord,
+  addRoomieToChamber,
+  listRoomiesInChamber,
+  setRoomieModelInChamber,
+  listRoomieModelsInChamber,
+  setDirectorModelInChamber,
+} from "./runtime/chamber-service";
 
-export type TuiRuntime = {
-  mode: "interactive" | "headless";
-  presetId: string;
-  directorModel: string;
-  start: () => string;
-  toggleThoughtVisibility: () => ThoughtVisibilityMode;
-  setThoughtVisibility: (mode: ThoughtVisibilityMode) => void;
-  getThoughtVisibility: () => ThoughtVisibilityMode;
-  ingestNdjson: (raw: string, fallbackAuthor?: string) => TheatricalEvent[];
-  getEvents: () => TheatricalEvent[];
-  renderEvents: (events?: TheatricalEvent[]) => string;
-};
+export { authLogin, authLogout, authStatus } from "./runtime/auth-service";
 
-const ICON_BY_TYPE: Record<TheatricalEventType, string> = {
-  speak: "💬",
-  action: "🎬",
-  thought: "💭",
-};
+export {
+  createFixtureAdapter,
+  hashFixtureRequest,
+  loadFixture,
+  recordFixture,
+  replayFixture,
+  FixtureReplayMissError,
+} from "./runtime/fixtures";
 
-const formatEvent = (event: TheatricalEvent) => {
-  const icon = ICON_BY_TYPE[event.type];
-  return `${icon} ${event.author} (${event.type}) ${event.content}`;
-};
+export { runHeadless } from "./runtime/run";
 
-export function createTuiRuntime(options: TuiRuntimeOptions = {}): TuiRuntime {
-  let thoughtVisibility: ThoughtVisibilityMode = options.thoughtVisibility ?? "show";
-  let eventCounter = 0;
-  const events: TheatricalEvent[] = [];
-
-  const nextEventId = () => {
-    eventCounter += 1;
-    return `tui-${eventCounter}`;
-  };
-
-  const filterForDisplay = (entries: TheatricalEvent[]) => {
-    if (thoughtVisibility === "show") return entries;
-    return entries.filter((event) => event.type !== "thought");
-  };
-
-  return {
-    mode: options.mode ?? "interactive",
-    presetId: options.presetId ?? "balanced",
-    directorModel: options.directorModel ?? "default",
-    start() {
-      return `@chambr/tui ready (preset=${this.presetId}, thoughtVisibility=${thoughtVisibility})`;
-    },
-    toggleThoughtVisibility() {
-      thoughtVisibility = thoughtVisibility === "show" ? "hide" : "show";
-      return thoughtVisibility;
-    },
-    setThoughtVisibility(mode: ThoughtVisibilityMode) {
-      thoughtVisibility = mode;
-    },
-    getThoughtVisibility() {
-      return thoughtVisibility;
-    },
-    ingestNdjson(raw: string, fallbackAuthor = "Roomie") {
-      const parsed = parseNdjsonTheatricalEvents({
-        raw,
-        defaultAuthor: fallbackAuthor,
-        defaultBeatId: "tui-live",
-        origin: "roomie",
-        nextEventId,
-      });
-
-      if (!parsed.ok) {
-        return [];
-      }
-
-      events.push(...parsed.events);
-      return parsed.events;
-    },
-    getEvents() {
-      return [...events];
-    },
-    renderEvents(inputEvents) {
-      const source = inputEvents ? [...inputEvents] : [...events];
-      const visible = filterForDisplay(source);
-      if (!visible.length) return "(no events)";
-      return visible.map((event) => formatEvent(event)).join("\n");
-    },
-  };
-}
+export { parseEventNdjson, renderEventLine, renderTranscript } from "./utils/events";
